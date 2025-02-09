@@ -1,3 +1,10 @@
+/*Write a C program that:
+Prompts the user with "Enter a message: " using write().
+Reads user input (max 100 characters) using read().
+Creates a file named user_message.txt using creat().
+Writes "Your message: [user input]" into the file using write().
+Prints "Message saved!" to the terminal.
+Exits with a status code equal to the length of the input (excluding newline).*/
 #include <unistd.h>
 #include <fcntl.h>
 
