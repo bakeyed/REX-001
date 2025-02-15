@@ -1,34 +1,95 @@
 ### Guide to Writing and Executing x86-64 Assembly (Intel Syntax)
 
-#### 1. System Call Convention (Linux x86-64)
+#### 1. Understanding the Sections in Assembly
 
-In Linux x86-64, system calls are made using the `syscall` instruction. The **registers** are used as follows:
+An assembly program is divided into different sections:
 
-- **rax**: System call number
-  System call number can be found by running:
+- **`.text` section**: Contains the executable instructions (code) of the program.
+- **`.data` section**: Stores initialized global variables (constant or predefined values).
+- **`.bss` section**: Reserves space for uninitialized global variables (used when defining variables later at runtime).
 
-```bash
-cat /usr/include/x86_64-linux-gnu/asm/unistd_64.h
+Example:
+
+```assembly
+section .text   ; Code section
+section .data   ; Predefined variables
+section .bss    ; Space for uninitialized variables
 ```
 
-- **rdi**: First argument
-- **rsi**: Second argument
-- **rdx**: Third argument
-- **r10**: Fourth argument
-- **r8**: Fifth argument
-- **r9**: Sixth argument
+#### 2. The `global _start` Directive
 
-**Example:**
+In assembly, execution starts from a predefined entry point. The directive:
 
-```asm
+```assembly
+global _start
+```
+
+- Declares `_start` as the program's entry point so that the linker recognizes it.
+- `_start` is used because it is the conventional entry point for Linux executables.
+
+#### 3. Making System Calls in Linux (x86-64)
+
+Linux system calls use the `syscall` instruction. The **registers** are used as follows:
+
+| **Register** | **Usage**          |
+| ------------ | ------------------ |
+| **rax**      | System call number |
+| **rdi**      | First argument     |
+| **rsi**      | Second argument    |
+| **rdx**      | Third argument     |
+| **r10**      | Fourth argument    |
+| **r8**       | Fifth argument     |
+| **r9**       | Sixth argument     |
+
+Example (exit system call):
+
+```assembly
 mov rax, 60    ; syscall number for exit
 mov rdi, 0     ; exit status code 0
 syscall        ; make the syscall
 ```
 
----
+#### 4. Example Program: Printing "hello world"
 
-#### 2. Common Assembly Instructions
+```assembly
+global _start
+
+section .text
+_start:
+    mov rax, 1      ; syscall for write
+    mov rdi, 1      ; file descriptor (stdout)
+    mov rsi, hello  ; pointer to string
+    mov rdx, 12     ; size (11 chars + 1 newline)
+    syscall         ; invoke kernel
+
+    mov rax, 60     ; syscall for exit
+    mov rdi, 0      ; exit status
+    syscall         ; invoke kernel
+
+section .data
+hello db "hello world", 10  ; Define string with newline
+```
+
+#### 5. Avoiding Segmentation Faults
+
+- The exit syscall (`syscall 60`) is **essential** to properly terminate the program.
+- Without an explicit exit, execution may continue into **unintended memory**, causing a **segmentation fault**.
+
+#### 6. Compilation & Execution
+
+```bash
+nasm -f elf64 helloworld.asm -o helloworld.o
+ld helloworld.o -o helloworld
+./helloworld
+```
+
+Expected output:
+
+```
+hello world
+```
+
+#### 7. Useful Assembly Instructions
 
 | **Instruction** | **Description**                                       |
 | --------------- | ----------------------------------------------------- |
@@ -40,60 +101,14 @@ syscall        ; make the syscall
 | **test**        | Bitwise AND to set flags (used for condition checks). |
 | **call**        | Call a function or procedure.                         |
 | **ret**         | Return from a procedure or function.                  |
-| **jne/jze**     | Jumps if the ZF value = 0                             |
-| **je/jz**       | Jumps if the ZF (flag) value = 1                      |
+| **jne/jnz**     | Jump if ZF (zero flag) = 0                            |
+| **je/jz**       | Jump if ZF = 1                                        |
 
----
+#### 8. Running on Online Assemblers
 
-#### 3. Example Program: Adding Two Numbers
-
-Code (add.asm):
-
----
-
-#### 4. How to Assemble and Run (Kali VM/WSL)
-
-#Step-1 : Save the Program
-
-Save the code above as `add.asm`.
-
-#Step-2: Assemble with NASM
-
-```bash
-nasm -f elf64 add.asm -o add.o
-```
-
-#Step-3: Link with LD
-
-```bash
-ld add.o -o add
-```
-
-#Step-4: Run the Program
-
-```bash
-./add
-```
-
-#Step-5: Check the Exit Status
-
-```bash
-echo $?
-```
-
-**Expected Output:**
-
-```
-11
-```
-
----
-
-#### 5. Running on Online Assemblers
-
-You can also use online assemblers like:
+You can use:
 
 - [Defuse.ca Online Assembler](https://defuse.ca/online-x86-assembler.htm)
 - [Rasm.io](https://rasm.io/)
 
-Ensure the platform supports **Intel syntax** and **64-bit** execution.
+Ensure **Intel syntax** and **64-bit execution** are supported.
